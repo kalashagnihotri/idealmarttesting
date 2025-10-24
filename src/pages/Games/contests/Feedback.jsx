@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 'https://api.idm.internal.destion.in';
 
+
 // Generate particles once - static configuration to prevent re-renders
 const BACKGROUND_PARTICLES = Array.from({ length: 10 }, (_, i) => ({
   id: i,
@@ -83,6 +84,44 @@ const Feedback = () => {
   useEffect(() => {
     localStorage.setItem('feedback_form', JSON.stringify(formData));
   }, [formData]);
+
+  // Keyboard detection using visualViewport for WebView stability
+  useEffect(() => {
+    let initialHeight = window.visualViewport 
+      ? window.visualViewport.height 
+      : window.innerHeight;
+
+    const handleResize = () => {
+      const currentHeight = window.visualViewport 
+        ? window.visualViewport.height 
+        : window.innerHeight;
+      
+      const heightDiff = initialHeight - currentHeight;
+      const heightDiffPercent = (heightDiff / initialHeight) * 100;
+
+      // Keyboard is open if height reduced by >120px or >20%
+      if (heightDiff > 120 || heightDiffPercent > 20) {
+        setKeyboardOpen(true);
+        document.documentElement.classList.add('keyboard-open');
+      } else {
+        setKeyboardOpen(false);
+        document.documentElement.classList.remove('keyboard-open');
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+      window.removeEventListener('resize', handleResize);
+      document.documentElement.classList.remove('keyboard-open');
+    };
+  }, []);
 
   // Set viewport height variable to prevent re-render on Android WebView keyboard open
   useEffect(() => {
@@ -311,6 +350,103 @@ const Feedback = () => {
     return null;
   }
 
+  // Keyboard Safe Mode - Minimal UI when keyboard is open
+  if (keyboardOpen && consentGiven === true && !submitted) {
+    return (
+      <>
+        <style>{`
+          .keyboard-open * {
+            transition: none !important;
+            animation: none !important;
+            filter: none !important;
+            backdrop-filter: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+            will-change: auto !important;
+          }
+          .keyboard-open body,
+          .keyboard-open #root {
+            background-color: #fff !important;
+          }
+        `}</style>
+        <div style={{ 
+          minHeight: 'calc(var(--vh) * 100)', 
+          backgroundColor: '#f9fafb', 
+          padding: '16px',
+          overflow: 'auto'
+        }}>
+          <div style={{ 
+            maxWidth: '640px', 
+            margin: '0 auto',
+            backgroundColor: '#fff',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ marginBottom: '16px', fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>
+              Question {currentQuestion + 1} of {totalQuestions}
+            </div>
+            <h2 style={{ 
+              fontSize: '20px', 
+              fontWeight: 'bold', 
+              color: '#253d4e', 
+              marginBottom: '20px',
+              lineHeight: '1.4'
+            }}>
+              {currentQuestionData.question}
+            </h2>
+            {currentQuestionData.type === 'textarea' ? (
+              <textarea
+                name={currentQuestionData.id}
+                value={formData[currentQuestionData.id]}
+                onChange={handleInputChange}
+                placeholder={currentQuestionData.placeholder}
+                rows={6}
+                autoFocus
+                spellCheck={false}
+                autoComplete="off"
+                inputMode="text"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '2px solid #d1d5db',
+                  fontSize: '16px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  resize: 'none',
+                  outline: 'none'
+                }}
+              />
+            ) : (
+              <select
+                name={currentQuestionData.id}
+                value={formData[currentQuestionData.id]}
+                onChange={handleInputChange}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '2px solid #d1d5db',
+                  fontSize: '16px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  outline: 'none',
+                  backgroundColor: '#fff'
+                }}
+              >
+                {currentQuestionData.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
   // Consent Screen
   if (consentGiven === null) {
     return (
@@ -518,29 +654,27 @@ const Feedback = () => {
       style={{ minHeight: 'calc(var(--vh) * 100)' }}
     >
       {/* Floating background elements - optimized for smooth, unified movement */}
-      {!keyboardOpen && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {BACKGROUND_PARTICLES.map((particle) => (
-            <div
-              key={particle.id}
-              className={`absolute rounded-full transition-all duration-700 ${
-                currentQuestion === 0 ? 'bg-gradient-to-br from-purple-400/20 to-pink-400/20' :
-                currentQuestion === 1 ? 'bg-gradient-to-br from-yellow-400/20 to-orange-400/20' :
-                currentQuestion === 2 ? 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20' :
-                currentQuestion === 3 ? 'bg-gradient-to-br from-red-400/20 to-pink-400/20' :
-                'bg-gradient-to-br from-green-400/20 to-emerald-400/20'
-              }`}
-              style={{
-                width: particle.size,
-                height: particle.size,
-                left: `${particle.left}%`,
-                top: `${particle.top}%`,
-                animation: `float-${particle.id} ${particle.duration}s ease-in-out infinite`,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {BACKGROUND_PARTICLES.map((particle) => (
+          <div
+            key={particle.id}
+            className={`absolute rounded-full transition-all duration-700 ${
+              currentQuestion === 0 ? 'bg-gradient-to-br from-purple-400/20 to-pink-400/20' :
+              currentQuestion === 1 ? 'bg-gradient-to-br from-yellow-400/20 to-orange-400/20' :
+              currentQuestion === 2 ? 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20' :
+              currentQuestion === 3 ? 'bg-gradient-to-br from-red-400/20 to-pink-400/20' :
+              'bg-gradient-to-br from-green-400/20 to-emerald-400/20'
+            }`}
+            style={{
+              width: particle.size,
+              height: particle.size,
+              left: `${particle.left}%`,
+              top: `${particle.top}%`,
+              animation: `float-${particle.id} ${particle.duration}s ease-in-out infinite`,
+            }}
+          />
+        ))}
+      </div>
 
       <style>{`
         @keyframes float-0 { 
@@ -676,100 +810,47 @@ const Feedback = () => {
               transition={{ delay: 0.3 }}
             >
               {currentQuestionData.type === 'textarea' ? (
-                keyboardOpen ? (
-                  <textarea
-                    name={currentQuestionData.id}
-                    value={formData[currentQuestionData.id]}
-                    onChange={handleInputChange}
-                    placeholder={currentQuestionData.placeholder}
-                    rows="6"
-                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none font-Quicksand shadow-inner transition-all duration-300"
-                    onFocus={() => setKeyboardOpen(true)}
-                    onBlur={() => setKeyboardOpen(false)}
-                    autoFocus
-                  />
-                ) : (
-                  <motion.textarea
-                    name={currentQuestionData.id}
-                    value={formData[currentQuestionData.id]}
-                    onChange={handleInputChange}
-                    placeholder={currentQuestionData.placeholder}
-                    rows="6"
-                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none font-Quicksand shadow-inner transition-all duration-300"
-                    onFocus={() => setKeyboardOpen(true)}
-                    onBlur={() => setKeyboardOpen(false)}
-                    whileFocus={{ scale: 1.02 }}
-                  />
-                )
+                <motion.textarea
+                  name={currentQuestionData.id}
+                  value={formData[currentQuestionData.id]}
+                  onChange={handleInputChange}
+                  placeholder={currentQuestionData.placeholder}
+                  rows="6"
+                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none font-Quicksand shadow-inner transition-all duration-300"
+                  whileFocus={{ scale: 1.02 }}
+                />
               ) : (
                 <div className="relative">
-                  {keyboardOpen ? (
-                    <select
-                      name={currentQuestionData.id}
-                      value={formData[currentQuestionData.id]}
-                      onChange={handleInputChange}
-                      className={`w-full px-5 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 text-base font-Quicksand font-bold shadow-lg cursor-pointer transition-all duration-300 appearance-none ${
-                        formData[currentQuestionData.id] 
-                          ? 'border-purple-400 bg-white text-gray-800' 
-                          : 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-500'
-                      }`}
-                      style={{
-                        backgroundImage: formData[currentQuestionData.id] 
-                          ? `linear-gradient(to right, rgb(239 68 68), rgb(236 72 153))` 
-                          : undefined,
-                        WebkitBackgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
-                        backgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
-                        WebkitTextFillColor: formData[currentQuestionData.id] ? 'transparent' : undefined
-                      }}
-                      onFocus={() => setKeyboardOpen(true)}
-                      onBlur={() => setKeyboardOpen(false)}
-                      autoFocus
-                    >
-                      {currentQuestionData.options.map((option) => (
-                        <option 
-                          key={option.value} 
-                          value={option.value}
-                          className="bg-white text-gray-800 font-semibold py-3"
-                          style={{ WebkitTextFillColor: 'initial', backgroundClip: 'initial' }}
-                        >
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <motion.select
-                      name={currentQuestionData.id}
-                      value={formData[currentQuestionData.id]}
-                      onChange={handleInputChange}
-                      className={`w-full px-5 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 text-base font-Quicksand font-bold shadow-lg cursor-pointer transition-all duration-300 appearance-none ${
-                        formData[currentQuestionData.id] 
-                          ? 'border-purple-400 bg-white text-gray-800' 
-                          : 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-500'
-                      }`}
-                      style={{
-                        backgroundImage: formData[currentQuestionData.id] 
-                          ? `linear-gradient(to right, rgb(239 68 68), rgb(236 72 153))` 
-                          : undefined,
-                        WebkitBackgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
-                        backgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
-                        WebkitTextFillColor: formData[currentQuestionData.id] ? 'transparent' : undefined
-                      }}
-                      onFocus={() => setKeyboardOpen(true)}
-                      onBlur={() => setKeyboardOpen(false)}
-                      whileFocus={{ scale: 1.02 }}
-                    >
-                      {currentQuestionData.options.map((option) => (
-                        <option 
-                          key={option.value} 
-                          value={option.value}
-                          className="bg-white text-gray-800 font-semibold py-3"
-                          style={{ WebkitTextFillColor: 'initial', backgroundClip: 'initial' }}
-                        >
-                          {option.label}
-                        </option>
-                      ))}
-                    </motion.select>
-                  )}
+                  <motion.select
+                    name={currentQuestionData.id}
+                    value={formData[currentQuestionData.id]}
+                    onChange={handleInputChange}
+                    className={`w-full px-5 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 text-base font-Quicksand font-bold shadow-lg cursor-pointer transition-all duration-300 appearance-none ${
+                      formData[currentQuestionData.id] 
+                        ? 'border-purple-400 bg-white text-gray-800' 
+                        : 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-500'
+                    }`}
+                    style={{
+                      backgroundImage: formData[currentQuestionData.id] 
+                        ? `linear-gradient(to right, rgb(239 68 68), rgb(236 72 153))` 
+                        : undefined,
+                      WebkitBackgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
+                      backgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
+                      WebkitTextFillColor: formData[currentQuestionData.id] ? 'transparent' : undefined
+                    }}
+                    whileFocus={{ scale: 1.02 }}
+                  >
+                    {currentQuestionData.options.map((option) => (
+                      <option 
+                        key={option.value} 
+                        value={option.value}
+                        className="bg-white text-gray-800 font-semibold py-3"
+                        style={{ WebkitTextFillColor: 'initial', backgroundClip: 'initial' }}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </motion.select>
                   {/* Custom dropdown arrow with gradient */}
                   <div className={`absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-300`}>
                     <svg 
