@@ -19,7 +19,18 @@ const BACKGROUND_PARTICLES = Array.from({ length: 10 }, (_, i) => ({
 const Feedback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token');
+  
+  // Get token from URL or localStorage for WebView stability
+  const urlToken = searchParams.get('token');
+  const storedToken = localStorage.getItem('feedback_token');
+  const token = urlToken || storedToken;
+
+  // Save token to localStorage on first load if present in URL
+  useEffect(() => {
+    if (urlToken) {
+      localStorage.setItem('feedback_token', urlToken);
+    }
+  }, [urlToken]);
 
   const [consentGiven, setConsentGiven] = useState(null); // null, true, false
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -36,6 +47,41 @@ const Feedback = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userName, setUserName] = useState('');
+
+  // Restore persisted states from localStorage on mount
+  useEffect(() => {
+    const savedConsent = localStorage.getItem('feedback_consent');
+    if (savedConsent !== null) {
+      setConsentGiven(JSON.parse(savedConsent));
+    }
+
+    const savedStep = localStorage.getItem('feedback_step');
+    if (savedStep !== null) {
+      setCurrentQuestion(Number(savedStep));
+    }
+
+    const savedForm = localStorage.getItem('feedback_form');
+    if (savedForm !== null) {
+      setFormData(JSON.parse(savedForm));
+    }
+  }, []);
+
+  // Persist consentGiven to localStorage on change
+  useEffect(() => {
+    if (consentGiven !== null) {
+      localStorage.setItem('feedback_consent', JSON.stringify(consentGiven));
+    }
+  }, [consentGiven]);
+
+  // Persist currentQuestion to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('feedback_step', currentQuestion.toString());
+  }, [currentQuestion]);
+
+  // Persist formData to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('feedback_form', JSON.stringify(formData));
+  }, [formData]);
 
   // Set viewport height variable to prevent re-render on Android WebView keyboard open
   useEffect(() => {
@@ -104,13 +150,13 @@ const Feedback = () => {
     }
   ];
 
-  // Redirect if no token is provided
+  // Redirect only if no token exists in both URL and localStorage
   useEffect(() => {
     if (!token) {
       console.warn('⚠️ No token provided - redirecting to home');
       navigate('/blank', { replace: true });
     }
-  }, [token, navigate]);
+  }, []); // Empty dependency - only check on mount
 
   // Update token in formData when it changes
   useEffect(() => {
@@ -229,8 +275,12 @@ const Feedback = () => {
       setLoading(false);
       setSubmitted(true);
 
-      // Navigate to blank page after 2 seconds
+      // Navigate to blank page after 2 seconds and clear all feedback data
       setTimeout(() => {
+        localStorage.removeItem('feedback_token');
+        localStorage.removeItem('feedback_consent');
+        localStorage.removeItem('feedback_step');
+        localStorage.removeItem('feedback_form');
         navigate('/blank');
       }, 2000);
 
@@ -243,7 +293,11 @@ const Feedback = () => {
 
   const handleConsent = (choice) => {
     if (choice === false) {
-      // User declined to give feedback, navigate to blank page
+      // User declined to give feedback, navigate to blank page and clear token
+      localStorage.removeItem('feedback_token');
+      localStorage.removeItem('feedback_consent');
+      localStorage.removeItem('feedback_step');
+      localStorage.removeItem('feedback_form');
       navigate('/games/blank');
     } else {
       // User agreed to give feedback
