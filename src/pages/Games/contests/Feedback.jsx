@@ -37,6 +37,18 @@ const Feedback = () => {
   const [error, setError] = useState(null);
   const [userName, setUserName] = useState('');
 
+  // Set viewport height variable to prevent re-render on Android WebView keyboard open
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    
+    setVh();
+    window.addEventListener('resize', setVh);
+    
+    return () => window.removeEventListener('resize', setVh);
+  }, []);
 
   const questions = [
     {
@@ -247,7 +259,10 @@ const Feedback = () => {
   // Consent Screen
   if (consentGiven === null) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center px-4 relative overflow-hidden">
+      <div 
+        className="bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center px-4 relative overflow-hidden"
+        style={{ minHeight: 'calc(var(--vh) * 100)' }}
+      >
         {/* Animated background particles */}
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(20)].map((_, i) => (
@@ -353,7 +368,10 @@ const Feedback = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex items-center justify-center px-4 relative overflow-hidden">
+      <div 
+        className="bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex items-center justify-center px-4 relative overflow-hidden"
+        style={{ minHeight: 'calc(var(--vh) * 100)' }}
+      >
         {/* Celebration particles */}
         <div className="absolute inset-0">
           {[...Array(30)].map((_, i) => (
@@ -434,13 +452,16 @@ const Feedback = () => {
   }
 
   return (
-    <div className={`min-h-[100dvh] py-6 px-4 relative overflow-hidden transition-colors duration-700 ${
-      currentQuestion === 0 ? 'bg-gradient-to-br from-purple-100 via-pink-50 to-purple-100' :
-      currentQuestion === 1 ? 'bg-gradient-to-br from-yellow-100 via-orange-50 to-yellow-100' :
-      currentQuestion === 2 ? 'bg-gradient-to-br from-blue-100 via-cyan-50 to-blue-100' :
-      currentQuestion === 3 ? 'bg-gradient-to-br from-red-100 via-pink-50 to-red-100' :
-      'bg-gradient-to-br from-green-100 via-emerald-50 to-green-100'
-    }`}>
+    <div 
+      className={`py-6 px-4 relative overflow-hidden transition-colors duration-700 ${
+        currentQuestion === 0 ? 'bg-gradient-to-br from-purple-100 via-pink-50 to-purple-100' :
+        currentQuestion === 1 ? 'bg-gradient-to-br from-yellow-100 via-orange-50 to-yellow-100' :
+        currentQuestion === 2 ? 'bg-gradient-to-br from-blue-100 via-cyan-50 to-blue-100' :
+        currentQuestion === 3 ? 'bg-gradient-to-br from-red-100 via-pink-50 to-red-100' :
+        'bg-gradient-to-br from-green-100 via-emerald-50 to-green-100'
+      }`}
+      style={{ minHeight: 'calc(var(--vh) * 100)' }}
+    >
       {/* Floating background elements - optimized for smooth, unified movement */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {BACKGROUND_PARTICLES.map((particle) => (
