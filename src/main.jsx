@@ -16,7 +16,7 @@ if (token) {
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
+      <BrowserRouter basename="/idealmarttesting">
         <App />
       </BrowserRouter>
     </Provider>
