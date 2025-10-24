@@ -48,7 +48,10 @@ const Feedback = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userName, setUserName] = useState('');
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  
+  // Debug mode: Force safe mode with ?safe=1 for testing
+  const forceSafeMode = searchParams.get('safe') === '1';
+  const [keyboardOpen, setKeyboardOpen] = useState(forceSafeMode);
 
   // Restore persisted states from localStorage on mount
   useEffect(() => {
@@ -87,6 +90,13 @@ const Feedback = () => {
 
   // Keyboard detection using visualViewport for WebView stability
   useEffect(() => {
+    // Skip detection if force safe mode is enabled
+    if (forceSafeMode) {
+      console.log('🔧 DEBUG MODE: Safe mode forced via ?safe=1');
+      document.documentElement.classList.add('keyboard-open');
+      return;
+    }
+
     let initialHeight = window.visualViewport 
       ? window.visualViewport.height 
       : window.innerHeight;
@@ -99,11 +109,21 @@ const Feedback = () => {
       const heightDiff = initialHeight - currentHeight;
       const heightDiffPercent = (heightDiff / initialHeight) * 100;
 
+      // Debug logging
+      console.log('📐 Viewport:', {
+        visualViewport: window.visualViewport?.height,
+        innerHeight: window.innerHeight,
+        heightDiff,
+        heightDiffPercent: heightDiffPercent.toFixed(2) + '%'
+      });
+
       // Keyboard is open if height reduced by >120px or >20%
       if (heightDiff > 120 || heightDiffPercent > 20) {
+        console.log('⌨️ Keyboard OPEN - entering safe mode');
         setKeyboardOpen(true);
         document.documentElement.classList.add('keyboard-open');
       } else {
+        console.log('⌨️ Keyboard CLOSED - normal mode');
         setKeyboardOpen(false);
         document.documentElement.classList.remove('keyboard-open');
       }
@@ -121,7 +141,7 @@ const Feedback = () => {
       window.removeEventListener('resize', handleResize);
       document.documentElement.classList.remove('keyboard-open');
     };
-  }, []);
+  }, [forceSafeMode]);
 
   // Set viewport height variable to prevent re-render on Android WebView keyboard open
   useEffect(() => {
@@ -352,6 +372,10 @@ const Feedback = () => {
 
   // Keyboard Safe Mode - Minimal UI when keyboard is open
   if (keyboardOpen && consentGiven === true && !submitted) {
+    const currentQuestionData = questions[currentQuestion];
+    const totalQuestions = questions.length;
+    const isAnswered = formData[currentQuestionData.id] && formData[currentQuestionData.id].trim() !== '';
+    
     return (
       <>
         <style>{`
@@ -372,75 +396,198 @@ const Feedback = () => {
         <div style={{ 
           minHeight: 'calc(var(--vh) * 100)', 
           backgroundColor: '#f9fafb', 
-          padding: '16px',
-          overflow: 'auto'
+          padding: '12px',
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           <div style={{ 
             maxWidth: '640px', 
             margin: '0 auto',
+            width: '100%',
             backgroundColor: '#fff',
             borderRadius: '16px',
-            padding: '24px',
-            border: '1px solid #e5e7eb'
+            padding: '20px',
+            border: '1px solid #e5e7eb',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column'
           }}>
-            <div style={{ marginBottom: '16px', fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>
-              Question {currentQuestion + 1} of {totalQuestions}
+            {/* Progress indicator */}
+            <div style={{ 
+              marginBottom: '12px', 
+              fontSize: '13px', 
+              color: '#6b7280', 
+              fontWeight: '600',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>Question {currentQuestion + 1} of {totalQuestions}</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {forceSafeMode && (
+                  <span style={{
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: '700'
+                  }}>
+                    DEBUG
+                  </span>
+                )}
+                <span style={{ 
+                  backgroundColor: '#f3f4f6', 
+                  padding: '4px 10px', 
+                  borderRadius: '12px',
+                  fontSize: '12px'
+                }}>
+                  {Math.round(((currentQuestion + 1) / totalQuestions) * 100)}%
+                </span>
+              </div>
             </div>
+
+            {/* Question */}
             <h2 style={{ 
-              fontSize: '20px', 
+              fontSize: '18px', 
               fontWeight: 'bold', 
               color: '#253d4e', 
-              marginBottom: '20px',
-              lineHeight: '1.4'
+              marginBottom: '16px',
+              lineHeight: '1.5',
+              flex: 0
             }}>
               {currentQuestionData.question}
             </h2>
-            {currentQuestionData.type === 'textarea' ? (
-              <textarea
-                name={currentQuestionData.id}
-                value={formData[currentQuestionData.id]}
-                onChange={handleInputChange}
-                placeholder={currentQuestionData.placeholder}
-                rows={6}
-                autoFocus
-                spellCheck={false}
-                autoComplete="off"
-                inputMode="text"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '2px solid #d1d5db',
-                  fontSize: '16px',
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  resize: 'none',
-                  outline: 'none'
-                }}
-              />
-            ) : (
-              <select
-                name={currentQuestionData.id}
-                value={formData[currentQuestionData.id]}
-                onChange={handleInputChange}
-                autoFocus
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '2px solid #d1d5db',
-                  fontSize: '16px',
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  outline: 'none',
-                  backgroundColor: '#fff'
-                }}
-              >
-                {currentQuestionData.options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            )}
+
+            {/* Input field */}
+            <div style={{ flex: 1, marginBottom: '16px' }}>
+              {currentQuestionData.type === 'textarea' ? (
+                <textarea
+                  name={currentQuestionData.id}
+                  value={formData[currentQuestionData.id]}
+                  onChange={handleInputChange}
+                  placeholder={currentQuestionData.placeholder}
+                  rows={6}
+                  autoFocus
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="sentences"
+                  inputMode="text"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '2px solid #d1d5db',
+                    fontSize: '16px',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    resize: 'none',
+                    outline: 'none',
+                    minHeight: '140px'
+                  }}
+                />
+              ) : (
+                <select
+                  name={currentQuestionData.id}
+                  value={formData[currentQuestionData.id]}
+                  onChange={handleInputChange}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '14px 12px',
+                    borderRadius: '12px',
+                    border: '2px solid #d1d5db',
+                    fontSize: '16px',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    outline: 'none',
+                    backgroundColor: '#fff',
+                    appearance: 'none',
+                    backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%236b7280\' d=\'M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z\'/%3E%3C/svg%3E")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    paddingRight: '36px'
+                  }}
+                >
+                  {currentQuestionData.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Navigation buttons */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '8px',
+              flexShrink: 0
+            }}>
+              {currentQuestion > 0 && (
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#f3f4f6',
+                    color: '#374151',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ← Back
+                </button>
+              )}
+              
+              <div style={{ flex: 1 }} />
+
+              {currentQuestion < totalQuestions - 1 ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!isAnswered}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: isAnswered ? '#378157' : '#d1d5db',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    cursor: isAnswered ? 'pointer' : 'not-allowed',
+                    opacity: isAnswered ? 1 : 0.6
+                  }}
+                >
+                  Next →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={loading || !isAnswered}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: (!loading && isAnswered) ? '#378157' : '#d1d5db',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    cursor: (!loading && isAnswered) ? 'pointer' : 'not-allowed',
+                    opacity: (!loading && isAnswered) ? 1 : 0.6
+                  }}
+                >
+                  {loading ? 'Submitting...' : 'Submit ✓'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </>
