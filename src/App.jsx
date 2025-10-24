@@ -20,7 +20,7 @@ function App() {
   };
 
   // Exclude specific routes and a folder (e.g., "/admin/*")
-  const excludedRoutes = ['/register', '/dashboard', '/combos', '/combos/coming-soon', '/savings-and-spent', '/feedback'];
+  const excludedRoutes = ['/register', '/dashboard', '/combos', '/combos/coming-soon', '/savings-and-spent', '/feedback', '/faq'];
   const excludedFolders = ['/games', '/error', '/contests']; // Example folder path
 
   // Check if current route is excluded

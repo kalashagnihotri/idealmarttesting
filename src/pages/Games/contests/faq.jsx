@@ -84,7 +84,7 @@ const FAQ = () => {
   useEffect(() => {
     if (!token) {
       console.warn('⚠️ No token provided - redirecting to home');
-      navigate('/blank', { replace: true });
+      navigate('/games/blank', { replace: true });
     }
   }, [token, navigate]);
 
@@ -207,7 +207,7 @@ const FAQ = () => {
 
       // Navigate to blank page after 2 seconds
       setTimeout(() => {
-        navigate('/blank');
+        navigate('/games/blank');
       }, 2000);
 
     } catch (err) {
