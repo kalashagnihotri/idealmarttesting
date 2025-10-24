@@ -30,6 +30,7 @@ import {
     DiwaliContest,
     SavingsAndSpent,
     Feedback,
+    FAQ,
 } from "@/pages";
 import React from "react";
 import ProtectedRoute from "./ProtectedRoute";
@@ -61,6 +62,11 @@ const AppRouter = () => {
             <Route
                 path="/feedback"
                 element={<Feedback />}
+            />
+
+            <Route
+                path="/faq"
+                element={<FAQ />}
             />
 
             {/* <Route path="/register" element={<Register />} /> */}

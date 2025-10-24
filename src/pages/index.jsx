@@ -28,5 +28,6 @@ import DiwaliContest from "./Games/contests/Diwali";
 import Error from "./error/Error";
 import SavingsAndSpent from "./SavingsAndSpent";
 import Feedback from "./Games/contests/Feedback";
+import FAQ from "./Games/contests/faq";
 
-export { Home, Pages, Shop, StorePage, Vendor, Pricing, AboutUs, BOGATiffinMobileLanding, Contact, FAQsPage, PrivacyPolicyPage, ProductDetail, SingleProductDetail, Combos, ProductCombo, CartItems, Register, Dashboard, SpinGame, SpinGame2, SpinGame3, TicTacGame, MemoryCardGame, QuizGame, EmptySpace, Blank, DiwaliContest, Error, SavingsAndSpent, Feedback };
+export { Home, Pages, Shop, StorePage, Vendor, Pricing, AboutUs, BOGATiffinMobileLanding, Contact, FAQsPage, PrivacyPolicyPage, ProductDetail, SingleProductDetail, Combos, ProductCombo, CartItems, Register, Dashboard, SpinGame, SpinGame2, SpinGame3, TicTacGame, MemoryCardGame, QuizGame, EmptySpace, Blank, DiwaliContest, Error, SavingsAndSpent, Feedback, FAQ };
