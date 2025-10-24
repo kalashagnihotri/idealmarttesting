@@ -247,7 +247,7 @@ const Feedback = () => {
   // Consent Screen
   if (consentGiven === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center px-4 relative overflow-hidden">
         {/* Animated background particles */}
         <div className="absolute inset-0 overflow-hidden">
           {[...Array(20)].map((_, i) => (
@@ -353,7 +353,7 @@ const Feedback = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="min-h-[100dvh] bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex items-center justify-center px-4 relative overflow-hidden">
         {/* Celebration particles */}
         <div className="absolute inset-0">
           {[...Array(30)].map((_, i) => (
@@ -434,7 +434,7 @@ const Feedback = () => {
   }
 
   return (
-    <div className={`min-h-screen py-6 px-4 relative overflow-hidden transition-colors duration-700 ${
+    <div className={`min-h-[100dvh] py-6 px-4 relative overflow-hidden transition-colors duration-700 ${
       currentQuestion === 0 ? 'bg-gradient-to-br from-purple-100 via-pink-50 to-purple-100' :
       currentQuestion === 1 ? 'bg-gradient-to-br from-yellow-100 via-orange-50 to-yellow-100' :
       currentQuestion === 2 ? 'bg-gradient-to-br from-blue-100 via-cyan-50 to-blue-100' :
