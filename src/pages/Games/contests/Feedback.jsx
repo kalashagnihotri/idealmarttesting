@@ -47,6 +47,7 @@ const Feedback = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [userName, setUserName] = useState('');
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   // Restore persisted states from localStorage on mount
   useEffect(() => {
@@ -517,27 +518,29 @@ const Feedback = () => {
       style={{ minHeight: 'calc(var(--vh) * 100)' }}
     >
       {/* Floating background elements - optimized for smooth, unified movement */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {BACKGROUND_PARTICLES.map((particle) => (
-          <div
-            key={particle.id}
-            className={`absolute rounded-full transition-all duration-700 ${
-              currentQuestion === 0 ? 'bg-gradient-to-br from-purple-400/20 to-pink-400/20' :
-              currentQuestion === 1 ? 'bg-gradient-to-br from-yellow-400/20 to-orange-400/20' :
-              currentQuestion === 2 ? 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20' :
-              currentQuestion === 3 ? 'bg-gradient-to-br from-red-400/20 to-pink-400/20' :
-              'bg-gradient-to-br from-green-400/20 to-emerald-400/20'
-            }`}
-            style={{
-              width: particle.size,
-              height: particle.size,
-              left: `${particle.left}%`,
-              top: `${particle.top}%`,
-              animation: `float-${particle.id} ${particle.duration}s ease-in-out infinite`,
-            }}
-          />
-        ))}
-      </div>
+      {!keyboardOpen && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {BACKGROUND_PARTICLES.map((particle) => (
+            <div
+              key={particle.id}
+              className={`absolute rounded-full transition-all duration-700 ${
+                currentQuestion === 0 ? 'bg-gradient-to-br from-purple-400/20 to-pink-400/20' :
+                currentQuestion === 1 ? 'bg-gradient-to-br from-yellow-400/20 to-orange-400/20' :
+                currentQuestion === 2 ? 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20' :
+                currentQuestion === 3 ? 'bg-gradient-to-br from-red-400/20 to-pink-400/20' :
+                'bg-gradient-to-br from-green-400/20 to-emerald-400/20'
+              }`}
+              style={{
+                width: particle.size,
+                height: particle.size,
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+                animation: `float-${particle.id} ${particle.duration}s ease-in-out infinite`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <style>{`
         @keyframes float-0 { 
@@ -585,7 +588,7 @@ const Feedback = () => {
       <div className="max-w-2xl mx-auto relative z-10">
         {/* Progress Bar */}
         <motion.div 
-          className="mb-8 bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg"
+          className={`mb-8 bg-white/80 rounded-2xl p-6 shadow-lg ${!keyboardOpen ? 'backdrop-blur-sm' : ''}`}
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
         >
@@ -673,47 +676,100 @@ const Feedback = () => {
               transition={{ delay: 0.3 }}
             >
               {currentQuestionData.type === 'textarea' ? (
-                <motion.textarea
-                  name={currentQuestionData.id}
-                  value={formData[currentQuestionData.id]}
-                  onChange={handleInputChange}
-                  placeholder={currentQuestionData.placeholder}
-                  rows="6"
-                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none font-Quicksand shadow-inner transition-all duration-300"
-                  whileFocus={{ scale: 1.02 }}
-                />
-              ) : (
-                <div className="relative">
-                  <motion.select
+                keyboardOpen ? (
+                  <textarea
                     name={currentQuestionData.id}
                     value={formData[currentQuestionData.id]}
                     onChange={handleInputChange}
-                    className={`w-full px-5 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 text-base font-Quicksand font-bold shadow-lg cursor-pointer transition-all duration-300 appearance-none ${
-                      formData[currentQuestionData.id] 
-                        ? 'border-purple-400 bg-white text-gray-800' 
-                        : 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-500'
-                    }`}
-                    style={{
-                      backgroundImage: formData[currentQuestionData.id] 
-                        ? `linear-gradient(to right, rgb(239 68 68), rgb(236 72 153))` 
-                        : undefined,
-                      WebkitBackgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
-                      backgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
-                      WebkitTextFillColor: formData[currentQuestionData.id] ? 'transparent' : undefined
-                    }}
+                    placeholder={currentQuestionData.placeholder}
+                    rows="6"
+                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none font-Quicksand shadow-inner transition-all duration-300"
+                    onFocus={() => setKeyboardOpen(true)}
+                    onBlur={() => setKeyboardOpen(false)}
+                    autoFocus
+                  />
+                ) : (
+                  <motion.textarea
+                    name={currentQuestionData.id}
+                    value={formData[currentQuestionData.id]}
+                    onChange={handleInputChange}
+                    placeholder={currentQuestionData.placeholder}
+                    rows="6"
+                    className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none font-Quicksand shadow-inner transition-all duration-300"
+                    onFocus={() => setKeyboardOpen(true)}
+                    onBlur={() => setKeyboardOpen(false)}
                     whileFocus={{ scale: 1.02 }}
-                  >
-                    {currentQuestionData.options.map((option) => (
-                      <option 
-                        key={option.value} 
-                        value={option.value}
-                        className="bg-white text-gray-800 font-semibold py-3"
-                        style={{ WebkitTextFillColor: 'initial', backgroundClip: 'initial' }}
-                      >
-                        {option.label}
-                      </option>
-                    ))}
-                  </motion.select>
+                  />
+                )
+              ) : (
+                <div className="relative">
+                  {keyboardOpen ? (
+                    <select
+                      name={currentQuestionData.id}
+                      value={formData[currentQuestionData.id]}
+                      onChange={handleInputChange}
+                      className={`w-full px-5 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 text-base font-Quicksand font-bold shadow-lg cursor-pointer transition-all duration-300 appearance-none ${
+                        formData[currentQuestionData.id] 
+                          ? 'border-purple-400 bg-white text-gray-800' 
+                          : 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-500'
+                      }`}
+                      style={{
+                        backgroundImage: formData[currentQuestionData.id] 
+                          ? `linear-gradient(to right, rgb(239 68 68), rgb(236 72 153))` 
+                          : undefined,
+                        WebkitBackgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
+                        backgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
+                        WebkitTextFillColor: formData[currentQuestionData.id] ? 'transparent' : undefined
+                      }}
+                      onFocus={() => setKeyboardOpen(true)}
+                      onBlur={() => setKeyboardOpen(false)}
+                      autoFocus
+                    >
+                      {currentQuestionData.options.map((option) => (
+                        <option 
+                          key={option.value} 
+                          value={option.value}
+                          className="bg-white text-gray-800 font-semibold py-3"
+                          style={{ WebkitTextFillColor: 'initial', backgroundClip: 'initial' }}
+                        >
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <motion.select
+                      name={currentQuestionData.id}
+                      value={formData[currentQuestionData.id]}
+                      onChange={handleInputChange}
+                      className={`w-full px-5 py-4 border-2 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 text-base font-Quicksand font-bold shadow-lg cursor-pointer transition-all duration-300 appearance-none ${
+                        formData[currentQuestionData.id] 
+                          ? 'border-purple-400 bg-white text-gray-800' 
+                          : 'border-gray-300 bg-gradient-to-br from-white to-gray-50 text-gray-500'
+                      }`}
+                      style={{
+                        backgroundImage: formData[currentQuestionData.id] 
+                          ? `linear-gradient(to right, rgb(239 68 68), rgb(236 72 153))` 
+                          : undefined,
+                        WebkitBackgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
+                        backgroundClip: formData[currentQuestionData.id] ? 'text' : undefined,
+                        WebkitTextFillColor: formData[currentQuestionData.id] ? 'transparent' : undefined
+                      }}
+                      onFocus={() => setKeyboardOpen(true)}
+                      onBlur={() => setKeyboardOpen(false)}
+                      whileFocus={{ scale: 1.02 }}
+                    >
+                      {currentQuestionData.options.map((option) => (
+                        <option 
+                          key={option.value} 
+                          value={option.value}
+                          className="bg-white text-gray-800 font-semibold py-3"
+                          style={{ WebkitTextFillColor: 'initial', backgroundClip: 'initial' }}
+                        >
+                          {option.label}
+                        </option>
+                      ))}
+                    </motion.select>
+                  )}
                   {/* Custom dropdown arrow with gradient */}
                   <div className={`absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-300`}>
                     <svg 
