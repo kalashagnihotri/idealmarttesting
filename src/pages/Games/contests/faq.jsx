@@ -1,90 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { FaStar, FaCheckCircle, FaComments, FaLightbulb, FaUsers, FaHeart, FaRocket } from 'react-icons/fa';
+import { FaStar, FaCheckCircle } from 'react-icons/fa';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_API_URL || 'https://api.idm.internal.destion.in';
 
-const FAQ = () => {
+const Feedback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
 
   const [consentGiven, setConsentGiven] = useState(null); // null, true, false
-  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [formData, setFormData] = useState({
     token: token || '',
-    q1_daily_use: '',
-    q2_solve_problem: '',
-    q3_community_expectation: '',
-    q4_connection_level: '',
-    q5_must_have_feature: ''
+    rating: 0,
+    experience: '',
+    recommendation: '',
+    improvements: '',
+    features: [],
+    additionalComments: ''
   });
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [userName, setUserName] = useState('');
-
-  const questions = [
-    {
-      id: 'q1_daily_use',
-      question: 'What would make you open the !dealmart app every day — not just for deals, but because it feels like your community?',
-      type: 'textarea',
-      placeholder: 'Share your thoughts...',
-      icon: FaRocket,
-      color: 'from-purple-500 to-pink-500',
-      emoji: '🚀'
-    },
-    {
-      id: 'q2_solve_problem',
-      question: 'If !dealmart could solve one everyday problem for you — big or small — what should it be?',
-      type: 'textarea',
-      placeholder: 'Tell us about the problem...',
-      icon: FaLightbulb,
-      color: 'from-yellow-500 to-orange-500',
-      emoji: '💡'
-    },
-    {
-      id: 'q3_community_expectation',
-      question: 'When you hear "built by the people, for the people," what do you expect from a community app like !dealmart?',
-      type: 'textarea',
-      placeholder: 'Your expectations...',
-      icon: FaUsers,
-      color: 'from-blue-500 to-cyan-500',
-      emoji: '👥'
-    },
-    {
-      id: 'q4_connection_level',
-      question: 'Do you currently feel connected to your local community through apps?',
-      type: 'select',
-      icon: FaHeart,
-      color: 'from-red-500 to-pink-500',
-      emoji: '❤️',
-      options: [
-        { value: '', label: 'Select an option' },
-        { value: 'yes_strongly', label: 'Yes, strongly connected' },
-        { value: 'somewhat', label: 'Somewhat connected' },
-        { value: 'not_really', label: 'Not really connected' },
-        { value: 'not_at_all', label: 'Not at all connected' }
-      ]
-    },
-    {
-      id: 'q5_must_have_feature',
-      question: 'Imagine !dealmart as your go-to local companion — what\'s the one feature or experience it must have to earn that spot on your home screen?',
-      type: 'textarea',
-      placeholder: 'The one must-have feature...',
-      icon: FaStar,
-      color: 'from-green-500 to-emerald-500',
-      emoji: '⭐'
-    }
-  ];
 
   // Redirect if no token is provided
   useEffect(() => {
     if (!token) {
       console.warn('⚠️ No token provided - redirecting to home');
-      navigate('/games/blank', { replace: true });
+      navigate('/blank', { replace: true });
     }
   }, [token, navigate]);
 
@@ -98,40 +42,15 @@ const FAQ = () => {
     }
   }, [token]);
 
-  // Fetch user name from token
-  useEffect(() => {
-    const fetchUserName = async () => {
-      if (!token) return;
-
-      try {
-        const response = await fetch(`${BASE_URL}/api/accounts/profile/`, {
-          headers: {
-            'Authorization': `Token ${token}`,
-          }
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          console.log('👤 User data fetched:', userData);
-          
-          // Try different possible name fields
-          const name = userData.name || userData.user_name || userData.first_name || userData.username || '';
-          if (name) {
-            setUserName(name);
-          }
-        }
-      } catch (error) {
-        console.warn('⚠️ Could not fetch user name:', error);
-        // Continue without name, it's not critical
-      }
-    };
-
-    fetchUserName();
-  }, [token]);
-
-  const currentQuestionData = questions[currentQuestion];
-  const totalQuestions = questions.length;
-  const progress = ((currentQuestion + 1) / totalQuestions) * 100;
+  const featureOptions = [
+    'Real-time Deals',
+    'Price Comparison',
+    'Shopping List',
+    'Store Locator',
+    'Savings Dashboard',
+    'Rewards Program',
+    'Deal Alerts'
+  ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -141,21 +60,20 @@ const FAQ = () => {
     }));
   };
 
-  const handleNext = () => {
-    if (currentQuestion < totalQuestions - 1) {
-      setCurrentQuestion(prev => prev + 1);
-    }
+  const handleRatingClick = (rating) => {
+    setFormData(prev => ({
+      ...prev,
+      rating
+    }));
   };
 
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(prev => prev - 1);
-    }
-  };
-
-  const isCurrentQuestionAnswered = () => {
-    const answer = formData[currentQuestionData.id];
-    return answer && answer.trim() !== '';
+  const handleFeatureToggle = (feature) => {
+    setFormData(prev => ({
+      ...prev,
+      features: prev.features.includes(feature)
+        ? prev.features.filter(f => f !== feature)
+        : [...prev.features, feature]
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -163,13 +81,14 @@ const FAQ = () => {
     setLoading(true);
     setError(null);
 
-    // Construct API payload following !dealmart patterns (snake_case)
+    // Construct API payload following IdealMart patterns (snake_case)
     const payload = {
-      q1_daily_use: formData.q1_daily_use,
-      q2_solve_problem: formData.q2_solve_problem,
-      q3_community_expectation: formData.q3_community_expectation,
-      q4_connection_level: formData.q4_connection_level,
-      q5_must_have_feature: formData.q5_must_have_feature,
+      rating: formData.rating,
+      experience: formData.experience,
+      recommendation: formData.recommendation,
+      features_used: formData.features, // Array of selected features
+      improvements: formData.improvements,
+      additional_comments: formData.additionalComments,
       submitted_at: new Date().toISOString()
     };
 
@@ -197,17 +116,12 @@ const FAQ = () => {
       const result = await response.json();
       console.log('✅ Feedback submitted successfully:', result);
       
-      // Extract user name from response if available
-      if (result.user_name || result.name) {
-        setUserName(result.user_name || result.name);
-      }
-      
       setLoading(false);
       setSubmitted(true);
 
       // Navigate to blank page after 2 seconds
       setTimeout(() => {
-        navigate('/games/blank');
+        navigate('/blank');
       }, 2000);
 
     } catch (err) {
@@ -235,447 +149,264 @@ const FAQ = () => {
   // Consent Screen
   if (consentGiven === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center px-4 relative overflow-hidden">
-        {/* Animated background particles */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-white opacity-10"
-              style={{
-                width: Math.random() * 100 + 50,
-                height: Math.random() * 100 + 50,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -30, 0],
-                x: [0, Math.random() * 20 - 10, 0],
-                scale: [1, 1.1, 1],
-              }}
-              transition={{
-                duration: Math.random() * 3 + 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          ))}
-        </div>
-
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-md w-full relative z-10"
-        >
-          <div className="bg-white rounded-3xl p-8 shadow-2xl border-4 border-white/50 backdrop-blur-sm">
-            {/* Animated Icon */}
-            <motion.div 
-              className="text-center mb-6"
-              initial={{ y: -20 }}
-              animate={{ y: 0 }}
-              transition={{ type: "spring", stiffness: 200 }}
-            >
-              <motion.div 
-                className="bg-gradient-to-br from-green-400 to-blue-500 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center shadow-lg"
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-              >
-                <span className="text-6xl">💬</span>
-              </motion.div>
-              <motion.h2 
-                className="text-3xl font-bold text-[#253d4e] mb-3 font-Quicksand"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-200">
+            {/* Icon */}
+            <div className="text-center mb-6">
+              <div className="bg-green-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                <span className="text-5xl">💬</span>
+              </div>
+              <h2 className="text-2xl font-bold text-[#253d4e] mb-3 font-Quicksand">
                 Share Your Feedback?
-              </motion.h2>
-              <motion.p 
-                className="text-gray-600 text-sm leading-relaxed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                We'd love to hear about your experience with !dealmart. Your feedback helps us improve our services for you and the community.
-              </motion.p>
-            </motion.div>
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                We'd love to hear about your experience with IdealMart. Your feedback helps us improve our services for you and the community.
+              </p>
+            </div>
 
-            {/* Animated Consent Buttons */}
-            <motion.div 
-              className="space-y-3"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              <motion.button
+            {/* Consent Buttons */}
+            <div className="space-y-3">
+              <button
                 onClick={() => handleConsent(true)}
-                className="w-full bg-gradient-to-r from-[#378157] to-[#2d6647] text-white py-4 rounded-xl font-bold text-base shadow-lg relative overflow-hidden"
-                whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(55, 129, 87, 0.4)" }}
-                whileTap={{ scale: 0.95 }}
+                className="w-full bg-gradient-to-r from-[#378157] to-[#2d6647] text-white py-4 rounded-lg font-bold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 font-Quicksand"
               >
-                <motion.span
-                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                />
-                <span className="relative flex items-center justify-center gap-2">
-                  ✨ Yes, I'd like to share feedback
-                </span>
-              </motion.button>
+                Yes, I'd like to share feedback
+              </button>
               
-              <motion.button
+              <button
                 onClick={() => handleConsent(false)}
-                className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold text-base hover:bg-gray-200 transition-all duration-200 font-Quicksand"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                className="w-full bg-gray-100 text-gray-700 py-4 rounded-lg font-semibold text-base hover:bg-gray-200 transition-all duration-200 font-Quicksand"
               >
                 No, maybe later
-              </motion.button>
-            </motion.div>
+              </button>
+            </div>
+
+            {/* Info Note */}
+            <div className="mt-6 text-center">
+              <p className="text-xs text-gray-500">
+                Your feedback is anonymous and helps us serve you better
+              </p>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex items-center justify-center px-4 relative overflow-hidden">
-        {/* Celebration particles */}
-        <div className="absolute inset-0">
-          {[...Array(30)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute text-4xl"
-              initial={{ 
-                x: '50%', 
-                y: '50%',
-                scale: 0,
-                opacity: 1
-              }}
-              animate={{
-                x: `${Math.random() * 100}%`,
-                y: `${Math.random() * 100}%`,
-                scale: [0, 1, 0],
-                opacity: [1, 1, 0],
-                rotate: Math.random() * 360
-              }}
-              transition={{
-                duration: 2,
-                delay: i * 0.05,
-                ease: "easeOut"
-              }}
-            >
-              {['🎉', '✨', '💚', '🌟', '⭐'][Math.floor(Math.random() * 5)]}
-            </motion.div>
-          ))}
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="bg-green-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+            <FaCheckCircle className="text-5xl text-[#378157]" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#253d4e] mb-3 font-Quicksand">
+            Thank You for Your Feedback!
+          </h2>
+          <p className="text-gray-600 text-sm">
+            We appreciate you taking the time to help us improve IdealMart.
+          </p>
         </div>
-
-        <motion.div 
-          className="text-center max-w-md relative z-10"
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        >
-          <motion.div 
-            className="bg-white/20 backdrop-blur-md rounded-full w-32 h-32 mx-auto mb-6 flex items-center justify-center border-4 border-white/50 shadow-2xl"
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, -5, 0]
-            }}
-            transition={{ 
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
-            <span className="text-7xl">🙌</span>
-          </motion.div>
-          
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl"
-          >
-            <h2 className="text-3xl font-bold text-[#253d4e] mb-3 font-Quicksand">
-              Thanks for sharing your voice{userName ? `, ${userName}` : ''}! 🙌
-            </h2>
-            <p className="text-gray-600 text-base leading-relaxed">
-              Every response brings us one step closer to making !dealmart your community platform — powered by real people, real stories, and real connections. 💛
-            </p>
-            
-            <motion.div
-              className="mt-6 flex items-center justify-center gap-2"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <span className="text-2xl">✨</span>
-              <span className="text-sm font-semibold text-gray-700">Redirecting...</span>
-              <span className="text-2xl">✨</span>
-            </motion.div>
-          </motion.div>
-        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-6 px-4 relative overflow-hidden">
-      {/* Floating background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(10)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-gradient-to-br from-purple-400/20 to-pink-400/20"
-            style={{
-              width: Math.random() * 200 + 100,
-              height: Math.random() * 200 + 100,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [0, -50, 0],
-              x: [0, 30, 0],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: Math.random() * 5 + 5,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white py-6 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-[#253d4e] mb-3 font-Quicksand">
+            We Value Your Feedback
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Help us improve your IdealMart experience by sharing your thoughts
+          </p>
+        </div>
 
-      <div className="max-w-2xl mx-auto relative z-10">
-        {/* Progress Bar */}
-        <motion.div 
-          className="mb-8 bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-        >
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-sm font-bold text-[#253d4e] font-Quicksand flex items-center gap-2">
-              <span className="text-2xl">{currentQuestionData.emoji}</span>
-              Question {currentQuestion + 1} of {totalQuestions}
-            </span>
-            <motion.span 
-              className="text-xs font-bold text-white bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1 rounded-full"
-              key={progress}
-              initial={{ scale: 1.2 }}
-              animate={{ scale: 1 }}
-            >
-              {Math.round(progress)}% Complete
-            </motion.span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-            <motion.div 
-              className={`bg-gradient-to-r ${currentQuestionData.color} h-3 rounded-full shadow-lg relative overflow-hidden`}
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                animate={{ x: ['-100%', '200%'] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              />
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Error Message */}
-        <AnimatePresence>
+        {/* Feedback Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Message */}
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="bg-red-50 border-2 border-red-300 text-red-700 px-4 py-3 rounded-2xl text-sm mb-6 shadow-lg"
+              className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm"
             >
               <p className="font-medium">⚠️ {error}</p>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* Question Card */}
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={currentQuestion}
-            initial={{ opacity: 0, x: 100, rotateY: 90 }}
-            animate={{ opacity: 1, x: 0, rotateY: 0 }}
-            exit={{ opacity: 0, x: -100, rotateY: -90 }}
-            transition={{ duration: 0.5, type: "spring" }}
-            className="bg-white rounded-3xl p-8 shadow-2xl border-2 border-white/50 mb-6 min-h-[450px] flex flex-col relative overflow-hidden"
-          >
-            {/* Decorative gradient overlay */}
-            <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${currentQuestionData.color}`} />
-
-            {/* Question Number Badge with Icon */}
-            <motion.div 
-              className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br ${currentQuestionData.color} text-white rounded-2xl font-bold mb-6 shadow-lg`}
-              whileHover={{ rotate: 360, scale: 1.1 }}
-              transition={{ duration: 0.6 }}
-            >
-              <currentQuestionData.icon className="text-2xl" />
-            </motion.div>
-
-            {/* Question Text */}
-            <motion.h2 
-              className="text-2xl font-bold text-[#253d4e] mb-6 font-Quicksand leading-relaxed"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              {currentQuestionData.question}
-            </motion.h2>
-
-            {/* Answer Input */}
-            <motion.div 
-              className="flex-1"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              {currentQuestionData.type === 'textarea' ? (
-                <motion.textarea
-                  name={currentQuestionData.id}
-                  value={formData[currentQuestionData.id]}
-                  onChange={handleInputChange}
-                  placeholder={currentQuestionData.placeholder}
-                  rows="6"
-                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none font-Quicksand shadow-inner transition-all duration-300"
-                  whileFocus={{ scale: 1.02 }}
-                />
-              ) : (
-                <motion.select
-                  name={currentQuestionData.id}
-                  value={formData[currentQuestionData.id]}
-                  onChange={handleInputChange}
-                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-300 focus:border-purple-400 text-sm font-Quicksand shadow-inner cursor-pointer transition-all duration-300"
-                  whileFocus={{ scale: 1.02 }}
-                >
-                  {currentQuestionData.options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </motion.select>
-              )}
-            </motion.div>
-
-            {/* Navigation Buttons */}
-            <motion.div 
-              className="flex gap-3 mt-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              {currentQuestion > 0 && (
-                <motion.button
+          {/* Rating */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <label className="block text-sm font-semibold text-[#253d4e] mb-3 font-Quicksand">
+              How would you rate your overall experience?
+            </label>
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
                   type="button"
-                  onClick={handlePrevious}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-all font-Quicksand shadow-md"
-                  whileHover={{ scale: 1.05, x: -5 }}
-                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleRatingClick(star)}
+                  className="focus:outline-none transition-transform hover:scale-110"
                 >
-                  ← Previous
-                </motion.button>
-              )}
-              
-              <div className="flex-1" />
+                  <FaStar
+                    className={`text-4xl ${
+                      star <= formData.rating
+                        ? 'text-[#f8c636]'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <p className="text-center text-xs text-gray-500 mt-2">
+              {formData.rating > 0 && `You rated: ${formData.rating} star${formData.rating > 1 ? 's' : ''}`}
+            </p>
+          </div>
 
-              {currentQuestion < totalQuestions - 1 ? (
-                <motion.button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={!isCurrentQuestionAnswered()}
-                  className={`px-8 py-3 bg-gradient-to-r ${currentQuestionData.color} text-white rounded-xl font-bold text-sm shadow-lg relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed`}
-                  whileHover={isCurrentQuestionAnswered() ? { scale: 1.05, x: 5 } : {}}
-                  whileTap={isCurrentQuestionAnswered() ? { scale: 0.95 } : {}}
-                >
-                  {isCurrentQuestionAnswered() && (
-                    <motion.span
-                      className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                    />
-                  )}
-                  <span className="relative">Next →</span>
-                </motion.button>
-              ) : (
-                <motion.button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={loading || !isCurrentQuestionAnswered()}
-                  className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold text-sm shadow-lg relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed font-Quicksand"
-                  whileHover={!loading && isCurrentQuestionAnswered() ? { scale: 1.05, boxShadow: "0 20px 40px rgba(16, 185, 129, 0.4)" } : {}}
-                  whileTap={!loading && isCurrentQuestionAnswered() ? { scale: 0.95 } : {}}
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <motion.div 
-                        className="rounded-full h-5 w-5 border-3 border-white border-t-transparent"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      />
-                      Submitting...
-                    </span>
-                  ) : (
-                    <>
-                      {isCurrentQuestionAnswered() && (
-                        <motion.span
-                          className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
-                          animate={{ x: ['-100%', '100%'] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                        />
-                      )}
-                      <span className="relative">Submit Feedback ✓</span>
-                    </>
-                  )}
-                </motion.button>
-              )}
-            </motion.div>
-          </motion.div>
-        </AnimatePresence>
+          {/* Experience */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
+              How was your experience using IdealMart?
+            </label>
+            <select
+              name="experience"
+              value={formData.experience}
+              onChange={handleInputChange}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm"
+            >
+              <option value="">Select an option</option>
+              <option value="excellent">Excellent</option>
+              <option value="good">Good</option>
+              <option value="average">Average</option>
+              <option value="poor">Poor</option>
+              <option value="very-poor">Very Poor</option>
+            </select>
+          </div>
 
-        {/* Progress Dots */}
-        <motion.div 
-          className="flex justify-center gap-3 mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          {questions.map((q, index) => (
-            <motion.div
-              key={index}
-              className={`rounded-full transition-all duration-300 cursor-pointer ${
-                index === currentQuestion
-                  ? `h-3 w-12 bg-gradient-to-r ${q.color} shadow-lg`
-                  : index < currentQuestion
-                  ? `h-3 w-3 bg-gradient-to-r ${q.color}`
-                  : 'h-3 w-3 bg-gray-300'
-              }`}
-              onClick={() => setCurrentQuestion(index)}
-              whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
+          {/* Recommendation */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
+              Would you recommend IdealMart to others?
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, recommendation: 'yes' }))}
+                className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-all ${
+                  formData.recommendation === 'yes'
+                    ? 'bg-[#378157] text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, recommendation: 'no' }))}
+                className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-all ${
+                  formData.recommendation === 'no'
+                    ? 'bg-[#378157] text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, recommendation: 'maybe' }))}
+                className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-all ${
+                  formData.recommendation === 'maybe'
+                    ? 'bg-[#378157] text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Maybe
+              </button>
+            </div>
+          </div>
+
+          {/* Features Used */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <label className="block text-sm font-semibold text-[#253d4e] mb-3 font-Quicksand">
+              Which features did you find most useful? (Select all that apply)
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {featureOptions.map((feature) => (
+                <button
+                  key={feature}
+                  type="button"
+                  onClick={() => handleFeatureToggle(feature)}
+                  className={`py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                    formData.features.includes(feature)
+                      ? 'bg-[#378157] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {feature}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Improvements */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
+              What can we improve?
+            </label>
+            <textarea
+              name="improvements"
+              value={formData.improvements}
+              onChange={handleInputChange}
+              placeholder="Share your suggestions for improvement..."
+              rows="4"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm resize-none"
             />
-          ))}
-        </motion.div>
+          </div>
+
+          {/* Additional Comments */}
+          <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
+              Additional Comments (Optional)
+            </label>
+            <textarea
+              name="additionalComments"
+              value={formData.additionalComments}
+              onChange={handleInputChange}
+              placeholder="Any other feedback you'd like to share..."
+              rows="3"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm resize-none"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading || !formData.rating || !formData.recommendation}
+            className="w-full bg-gradient-to-r from-[#378157] to-[#2d6647] text-white py-4 rounded-lg font-bold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-Quicksand"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Submitting...
+              </span>
+            ) : (
+              'Submit Feedback'
+            )}
+          </button>
+        </form>
 
         {/* Footer Note */}
-        <motion.p 
-          className="text-center text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-6 py-3 rounded-full shadow-md"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          💛 Your feedback helps us build !dealmart as a true community platform
-        </motion.p>
+        <p className="text-center text-xs text-gray-500 mt-6">
+          Your feedback helps us serve you better. Thank you for being a valued member of the IdealMart community!
+        </p>
       </div>
     </div>
   );
 };
 
-export default FAQ;
+export default Feedback;
+
