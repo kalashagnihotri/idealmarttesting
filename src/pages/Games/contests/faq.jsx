@@ -9,7 +9,7 @@ const FAQ = () => {
   const navigate = useNavigate();
   const token = searchParams.get('token');
 
-  const [consentGiven, setConsentGiven] = useState(null); // null, true, false
+  const [consentGiven, setConsentGiven] = useState(null);
   const [formData, setFormData] = useState({
     token: token || '',
     rating: 0,
@@ -81,18 +81,17 @@ const FAQ = () => {
     setLoading(true);
     setError(null);
 
-    // Construct API payload following IdealMart patterns (snake_case)
     const payload = {
       rating: formData.rating,
       experience: formData.experience,
       recommendation: formData.recommendation,
-      features_used: formData.features, // Array of selected features
+      features_used: formData.features,
       improvements: formData.improvements,
       additional_comments: formData.additionalComments,
       submitted_at: new Date().toISOString()
     };
 
-    console.log('📤 Submitting feedback to API:', payload);
+    console.log('📤 Submitting FAQ feedback to API:', payload);
     console.log('🔑 Using token:', token ? 'Token present' : 'No token');
 
     try {
@@ -114,18 +113,17 @@ const FAQ = () => {
       }
 
       const result = await response.json();
-      console.log('✅ Feedback submitted successfully:', result);
+      console.log('✅ FAQ feedback submitted successfully:', result);
       
       setLoading(false);
       setSubmitted(true);
 
-      // Navigate to blank page after 2 seconds
       setTimeout(() => {
         navigate('/blank');
       }, 2000);
 
     } catch (err) {
-      console.error('❌ Error submitting feedback:', err);
+      console.error('❌ Error submitting FAQ feedback:', err);
       setError(err.message || 'Failed to submit feedback. Please try again.');
       setLoading(false);
     }
@@ -133,10 +131,8 @@ const FAQ = () => {
 
   const handleConsent = (choice) => {
     if (choice === false) {
-      // User declined to give feedback, navigate to blank page
       navigate('/games/blank');
     } else {
-      // User agreed to give feedback
       setConsentGiven(true);
     }
   };
@@ -149,44 +145,35 @@ const FAQ = () => {
   // Consent Screen
   if (consentGiven === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-200">
-            {/* Icon */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 py-8">
+        <div className="max-w-lg w-full">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-6">
-              <div className="bg-green-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-5xl">💬</span>
+              <div className="bg-gradient-to-br from-blue-400 to-purple-500 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center shadow-lg">
+                <span className="text-6xl">📝</span>
               </div>
-              <h2 className="text-2xl font-bold text-[#253d4e] mb-3 font-Quicksand">
-                Share Your Feedback?
+              <h2 className="text-3xl font-bold text-gray-800 mb-3">
+                Quick Feedback
               </h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                We'd love to hear about your experience with IdealMart. Your feedback helps us improve our services for you and the community.
+              <p className="text-gray-600 leading-relaxed">
+                Help us improve IdealMart by sharing your experience. It only takes a minute!
               </p>
             </div>
 
-            {/* Consent Buttons */}
             <div className="space-y-3">
               <button
                 onClick={() => handleConsent(true)}
-                className="w-full bg-gradient-to-r from-[#378157] to-[#2d6647] text-white py-4 rounded-lg font-bold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 font-Quicksand"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all"
               >
-                Yes, I'd like to share feedback
+                ✨ Yes, I'll help
               </button>
               
               <button
                 onClick={() => handleConsent(false)}
-                className="w-full bg-gray-100 text-gray-700 py-4 rounded-lg font-semibold text-base hover:bg-gray-200 transition-all duration-200 font-Quicksand"
+                className="w-full bg-gray-100 text-gray-700 py-4 rounded-xl font-semibold hover:bg-gray-200 transition-all"
               >
-                No, maybe later
+                Maybe later
               </button>
-            </div>
-
-            {/* Info Note */}
-            <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500">
-                Your feedback is anonymous and helps us serve you better
-              </p>
             </div>
           </div>
         </div>
@@ -196,32 +183,34 @@ const FAQ = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <div className="bg-green-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-            <FaCheckCircle className="text-5xl text-[#378157]" />
+          <div className="bg-white rounded-3xl p-8 shadow-xl">
+            <div className="bg-green-100 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+              <FaCheckCircle className="text-6xl text-green-600" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">
+              Thank You! 🎉
+            </h2>
+            <p className="text-gray-600">
+              Your feedback helps us make IdealMart better for everyone.
+            </p>
           </div>
-          <h2 className="text-2xl font-bold text-[#253d4e] mb-3 font-Quicksand">
-            Thank You for Your Feedback!
-          </h2>
-          <p className="text-gray-600 text-sm">
-            We appreciate you taking the time to help us improve IdealMart.
-          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white py-6 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#253d4e] mb-3 font-Quicksand">
-            We Value Your Feedback
+          <h1 className="text-4xl font-bold text-gray-800 mb-3">
+            Share Your Thoughts
           </h1>
-          <p className="text-gray-600 text-sm">
-            Help us improve your IdealMart experience by sharing your thoughts
+          <p className="text-gray-600">
+            Your feedback matters to us
           </p>
         </div>
 
@@ -229,116 +218,118 @@ const FAQ = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-              <p className="font-medium">⚠️ {error}</p>
+            <div className="bg-red-50 border-2 border-red-200 text-red-700 px-5 py-4 rounded-xl">
+              <p className="font-semibold">⚠️ {error}</p>
             </div>
           )}
 
-          {/* Rating */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <label className="block text-sm font-semibold text-[#253d4e] mb-3 font-Quicksand">
-              How would you rate your overall experience?
+          {/* Rating Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <label className="block text-lg font-bold text-gray-800 mb-4">
+              How would you rate your experience?
             </label>
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-3">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
                   onClick={() => handleRatingClick(star)}
-                  className="focus:outline-none transition-transform hover:scale-110"
+                  className="focus:outline-none transition-all transform hover:scale-110"
                 >
                   <FaStar
-                    className={`text-4xl ${
+                    className={`text-5xl ${
                       star <= formData.rating
-                        ? 'text-[#f8c636]'
+                        ? 'text-yellow-400'
                         : 'text-gray-300'
                     }`}
                   />
                 </button>
               ))}
             </div>
-            <p className="text-center text-xs text-gray-500 mt-2">
-              {formData.rating > 0 && `You rated: ${formData.rating} star${formData.rating > 1 ? 's' : ''}`}
-            </p>
+            {formData.rating > 0 && (
+              <p className="text-center text-sm text-gray-500 mt-3">
+                You rated: {formData.rating} star{formData.rating > 1 ? 's' : ''}
+              </p>
+            )}
           </div>
 
-          {/* Experience */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
-              How was your experience using IdealMart?
+          {/* Experience Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <label className="block text-lg font-bold text-gray-800 mb-3">
+              Overall Experience
             </label>
             <select
               name="experience"
               value={formData.experience}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm"
+              className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
             >
-              <option value="">Select an option</option>
-              <option value="excellent">Excellent</option>
-              <option value="good">Good</option>
-              <option value="average">Average</option>
-              <option value="poor">Poor</option>
-              <option value="very-poor">Very Poor</option>
+              <option value="">Select your experience</option>
+              <option value="excellent">😍 Excellent</option>
+              <option value="good">😊 Good</option>
+              <option value="average">😐 Average</option>
+              <option value="poor">😕 Poor</option>
+              <option value="very-poor">😞 Very Poor</option>
             </select>
           </div>
 
-          {/* Recommendation */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
-              Would you recommend IdealMart to others?
+          {/* Recommendation Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <label className="block text-lg font-bold text-gray-800 mb-3">
+              Would you recommend us?
             </label>
-            <div className="flex gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, recommendation: 'yes' }))}
-                className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-all ${
+                className={`py-4 rounded-xl font-bold transition-all ${
                   formData.recommendation === 'yes'
-                    ? 'bg-[#378157] text-white'
+                    ? 'bg-green-500 text-white shadow-lg scale-105'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Yes
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, recommendation: 'no' }))}
-                className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-all ${
-                  formData.recommendation === 'no'
-                    ? 'bg-[#378157] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                No
+                👍 Yes
               </button>
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, recommendation: 'maybe' }))}
-                className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-all ${
+                className={`py-4 rounded-xl font-bold transition-all ${
                   formData.recommendation === 'maybe'
-                    ? 'bg-[#378157] text-white'
+                    ? 'bg-yellow-500 text-white shadow-lg scale-105'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Maybe
+                🤔 Maybe
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, recommendation: 'no' }))}
+                className={`py-4 rounded-xl font-bold transition-all ${
+                  formData.recommendation === 'no'
+                    ? 'bg-red-500 text-white shadow-lg scale-105'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                👎 No
               </button>
             </div>
           </div>
 
-          {/* Features Used */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <label className="block text-sm font-semibold text-[#253d4e] mb-3 font-Quicksand">
-              Which features did you find most useful? (Select all that apply)
+          {/* Features Card */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <label className="block text-lg font-bold text-gray-800 mb-3">
+              Which features do you love? (Select all)
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {featureOptions.map((feature) => (
                 <button
                   key={feature}
                   type="button"
                   onClick={() => handleFeatureToggle(feature)}
-                  className={`py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                  className={`py-3 px-4 rounded-xl text-sm font-semibold transition-all ${
                     formData.features.includes(feature)
-                      ? 'bg-[#378157] text-white'
+                      ? 'bg-blue-500 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -348,33 +339,33 @@ const FAQ = () => {
             </div>
           </div>
 
-          {/* Improvements */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
+          {/* Improvements Textarea */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <label className="block text-lg font-bold text-gray-800 mb-3">
               What can we improve?
             </label>
             <textarea
               name="improvements"
               value={formData.improvements}
               onChange={handleInputChange}
-              placeholder="Share your suggestions for improvement..."
+              placeholder="Share your suggestions..."
               rows="4"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm resize-none"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none transition-colors"
             />
           </div>
 
-          {/* Additional Comments */}
-          <div className="bg-white rounded-lg p-4 shadow-sm border">
-            <label className="block text-sm font-semibold text-[#253d4e] mb-2 font-Quicksand">
-              Additional Comments (Optional)
+          {/* Additional Comments Textarea */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <label className="block text-lg font-bold text-gray-800 mb-3">
+              Anything else? (Optional)
             </label>
             <textarea
               name="additionalComments"
               value={formData.additionalComments}
               onChange={handleInputChange}
-              placeholder="Any other feedback you'd like to share..."
+              placeholder="Any other thoughts..."
               rows="3"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm resize-none"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none transition-colors"
             />
           </div>
 
@@ -382,22 +373,22 @@ const FAQ = () => {
           <button
             type="submit"
             disabled={loading || !formData.rating || !formData.recommendation}
-            className="w-full bg-gradient-to-r from-[#378157] to-[#2d6647] text-white py-4 rounded-lg font-bold text-base shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-Quicksand"
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-5 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span className="flex items-center justify-center gap-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                 Submitting...
               </span>
             ) : (
-              'Submit Feedback'
+              '🚀 Submit Feedback'
             )}
           </button>
         </form>
 
-        {/* Footer Note */}
-        <p className="text-center text-xs text-gray-500 mt-6">
-          Your feedback helps us serve you better. Thank you for being a valued member of the IdealMart community!
+        {/* Footer */}
+        <p className="text-center text-sm text-gray-500 mt-8">
+          💙 Thank you for helping us improve IdealMart!
         </p>
       </div>
     </div>
@@ -405,4 +396,3 @@ const FAQ = () => {
 };
 
 export default FAQ;
-
