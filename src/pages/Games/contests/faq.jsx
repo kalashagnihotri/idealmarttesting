@@ -28,7 +28,7 @@ const FAQ = () => {
   useEffect(() => {
     if (!token) {
       console.warn('⚠️ No token provided - redirecting to home');
-      navigate('/blank', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [token, navigate]);
 
@@ -41,6 +41,42 @@ const FAQ = () => {
       }));
     }
   }, [token]);
+
+  // Viewport height stabilizer for mobile WebViews (keyboard safe)
+  useEffect(() => {
+    const setVh = () => {
+      try {
+        const height = (window.visualViewport?.height ?? window.innerHeight) * 0.01;
+        document.documentElement.style.setProperty('--vh', `${height}px`);
+      } catch (e) {
+        // noop
+      }
+    };
+    setVh();
+    window.visualViewport?.addEventListener('resize', setVh);
+    window.addEventListener('resize', setVh);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', setVh);
+      window.removeEventListener('resize', setVh);
+    };
+  }, []);
+
+  // Optional: tighten meta viewport to reduce zoom/reflow issues during input
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    const original = meta?.getAttribute('content') || '';
+    if (meta) {
+      meta.setAttribute(
+        'content',
+        'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
+      );
+    }
+    return () => {
+      if (meta) {
+        meta.setAttribute('content', original || 'width=device-width, initial-scale=1');
+      }
+    };
+  }, []);
 
   const featureOptions = [
     'Real-time Deals',
@@ -119,7 +155,7 @@ const FAQ = () => {
       setSubmitted(true);
 
       setTimeout(() => {
-        navigate('/blank');
+        navigate('/games/blank', { replace: true });
       }, 2000);
 
     } catch (err) {
@@ -145,7 +181,15 @@ const FAQ = () => {
   // Consent Screen
   if (consentGiven === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 py-8">
+      <div
+        className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 py-8"
+        style={{
+          minHeight: 'calc(var(--vh, 1vh) * 100)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
+        }}
+      >
         <div className="max-w-lg w-full">
           <div className="bg-white rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-6">
@@ -183,7 +227,15 @@ const FAQ = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center px-4">
+      <div
+        className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center px-4"
+        style={{
+          minHeight: 'calc(var(--vh, 1vh) * 100)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
+        }}
+      >
         <div className="text-center max-w-md">
           <div className="bg-white rounded-3xl p-8 shadow-xl">
             <div className="bg-green-100 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
@@ -202,7 +254,15 @@ const FAQ = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4">
+    <div
+      className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8 px-4"
+      style={{
+        minHeight: 'calc(var(--vh, 1vh) * 100)',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehaviorY: 'contain',
+      }}
+    >
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -263,7 +323,8 @@ const FAQ = () => {
               value={formData.experience}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors text-base"
+              style={{ fontSize: 16, touchAction: 'manipulation' }}
             >
               <option value="">Select your experience</option>
               <option value="excellent">😍 Excellent</option>
@@ -350,7 +411,10 @@ const FAQ = () => {
               onChange={handleInputChange}
               placeholder="Share your suggestions..."
               rows="4"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none transition-colors text-base"
+              style={{ fontSize: 16, touchAction: 'manipulation' }}
+              inputMode="text"
+              enterKeyHint="done"
             />
           </div>
 
@@ -365,7 +429,10 @@ const FAQ = () => {
               onChange={handleInputChange}
               placeholder="Any other thoughts..."
               rows="3"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 resize-none transition-colors text-base"
+              style={{ fontSize: 16, touchAction: 'manipulation' }}
+              inputMode="text"
+              enterKeyHint="done"
             />
           </div>
 
