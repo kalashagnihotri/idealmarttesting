@@ -25,6 +25,9 @@ const FAQ = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Flutter WebView stability: lock layout during keyboard transitions
+  const [imeTransitioning, setImeTransitioning] = useState(false);
+
   // Lightweight in-app debug overlay (toggle with ?debug=1)
   const [debugOpen, setDebugOpen] = useState(debugParam);
   const [logs, setLogs] = useState([]);
@@ -70,7 +73,11 @@ const FAQ = () => {
   }, [token]);
 
   // Viewport height stabilizer for mobile WebViews (keyboard safe)
+  // Debounced to handle Flutter Surface recreation storms
   useEffect(() => {
+    let debounceTimer = null;
+    let transitionTimer = null;
+
     const setVh = () => {
       try {
         const height = (window.visualViewport?.height ?? window.innerHeight) * 0.01;
@@ -86,16 +93,40 @@ const FAQ = () => {
         // noop
       }
     };
+    
     setVh();
+
     const onVvResize = () => {
       log('visualViewport resize');
-      setVh();
+      
+      // Signal IME transition to lock renders
+      setImeTransitioning(true);
+      clearTimeout(transitionTimer);
+      transitionTimer = setTimeout(() => {
+        setImeTransitioning(false);
+        log('IME transition complete');
+      }, 300);
+
+      // Debounce actual vh update to avoid thrashing during Surface reconnects
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(setVh, 150);
     };
-    window.visualViewport?.addEventListener('resize', onVvResize);
-    window.addEventListener('resize', setVh);
+
+    const onResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(setVh, 150);
+    };
+
+    // Passive listeners to reduce main-thread blocking
+    const opts = { passive: true };
+    window.visualViewport?.addEventListener('resize', onVvResize, opts);
+    window.addEventListener('resize', onResize, opts);
+    
     return () => {
-      window.visualViewport?.removeEventListener('resize', onVvResize);
-      window.removeEventListener('resize', setVh);
+      clearTimeout(debounceTimer);
+      clearTimeout(transitionTimer);
+      window.visualViewport?.removeEventListener('resize', onVvResize, opts);
+      window.removeEventListener('resize', onResize, opts);
     };
   }, []);
 
@@ -128,8 +159,16 @@ const FAQ = () => {
 
     const onError = (e) => log('window.error', e.message || e);
     const onRejection = (e) => log('unhandledrejection', e?.reason || e);
-    const onFocusIn = () => log('focusin', document.activeElement?.tagName);
-    const onFocusOut = () => log('focusout');
+    const onFocusIn = () => {
+      log('focusin', document.activeElement?.tagName);
+      // Detect Flutter WebView IME show via focus
+      setImeTransitioning(true);
+    };
+    const onFocusOut = () => {
+      log('focusout');
+      // IME likely hiding
+      setTimeout(() => setImeTransitioning(false), 100);
+    };
     const onOrientation = () => log('orientationchange');
     const onVisibility = () => log('visibilitychange', document.visibilityState);
 
@@ -161,6 +200,11 @@ const FAQ = () => {
   ];
 
   const handleInputChange = (e) => {
+    // Skip updates during Flutter Surface transitions
+    if (imeTransitioning) {
+      log('handleInputChange skipped: IME transitioning');
+      return;
+    }
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -342,6 +386,11 @@ const FAQ = () => {
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         overscrollBehaviorY: 'contain',
+        // Flutter WebView: hint compositor to promote layers before keyboard
+        willChange: imeTransitioning ? 'transform' : 'auto',
+        // Prevent repaints during Surface reconnect
+        backfaceVisibility: 'hidden',
+        transform: 'translateZ(0)',
       }}
     >
       {/* Debug overlay toggle */}
