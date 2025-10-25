@@ -8,6 +8,7 @@ const FAQ = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
+  const debugParam = searchParams.get('debug') === '1';
 
   const [consentGiven, setConsentGiven] = useState(null);
   const [formData, setFormData] = useState({
@@ -23,6 +24,32 @@ const FAQ = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Lightweight in-app debug overlay (toggle with ?debug=1)
+  const [debugOpen, setDebugOpen] = useState(debugParam);
+  const [logs, setLogs] = useState([]);
+  const log = (...args) => {
+    try {
+      // Always log to console
+      console.log('[FAQ]', ...args);
+      if (!debugParam) return;
+      const ts = new Date().toISOString().split('T')[1].split('.')[0];
+      const msg = args
+        .map(a => {
+          if (a instanceof Error) return `Error: ${a.message}`;
+          if (typeof a === 'object') {
+            try { return JSON.stringify(a); } catch { return String(a); }
+          }
+          return String(a);
+        })
+        .join(' ');
+      setLogs(prev => {
+        const next = [...prev, `${ts} ${msg}`];
+        // cap to last 300 lines
+        return next.length > 300 ? next.slice(next.length - 300) : next;
+      });
+    } catch { /* noop */ }
+  };
 
   // Redirect if no token is provided
   useEffect(() => {
@@ -48,15 +75,26 @@ const FAQ = () => {
       try {
         const height = (window.visualViewport?.height ?? window.innerHeight) * 0.01;
         document.documentElement.style.setProperty('--vh', `${height}px`);
+        log('setVh', {
+          vhPx: height * 100,
+          innerHeight: window.innerHeight,
+          vv: window.visualViewport
+            ? { h: window.visualViewport.height, w: window.visualViewport.width, offsetTop: window.visualViewport.offsetTop }
+            : null
+        });
       } catch (e) {
         // noop
       }
     };
     setVh();
-    window.visualViewport?.addEventListener('resize', setVh);
+    const onVvResize = () => {
+      log('visualViewport resize');
+      setVh();
+    };
+    window.visualViewport?.addEventListener('resize', onVvResize);
     window.addEventListener('resize', setVh);
     return () => {
-      window.visualViewport?.removeEventListener('resize', setVh);
+      window.visualViewport?.removeEventListener('resize', onVvResize);
       window.removeEventListener('resize', setVh);
     };
   }, []);
@@ -66,17 +104,51 @@ const FAQ = () => {
     const meta = document.querySelector('meta[name="viewport"]');
     const original = meta?.getAttribute('content') || '';
     if (meta) {
-      meta.setAttribute(
-        'content',
-        'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'
-      );
+      const next = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+      meta.setAttribute('content', next);
+      log('meta viewport set', next);
     }
     return () => {
       if (meta) {
-        meta.setAttribute('content', original || 'width=device-width, initial-scale=1');
+        const restore = original || 'width=device-width, initial-scale=1';
+        meta.setAttribute('content', restore);
+        log('meta viewport restored');
       }
     };
   }, []);
+
+  // Debug: capture errors, focus, orientation, visibility
+  useEffect(() => {
+    if (!debugParam) return;
+    log('debug:on', {
+      ua: navigator.userAgent,
+      path: window.location.pathname + window.location.search,
+      hasToken: Boolean(token)
+    });
+
+    const onError = (e) => log('window.error', e.message || e);
+    const onRejection = (e) => log('unhandledrejection', e?.reason || e);
+    const onFocusIn = () => log('focusin', document.activeElement?.tagName);
+    const onFocusOut = () => log('focusout');
+    const onOrientation = () => log('orientationchange');
+    const onVisibility = () => log('visibilitychange', document.visibilityState);
+
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onRejection);
+    window.addEventListener('focusin', onFocusIn);
+    window.addEventListener('focusout', onFocusOut);
+    window.addEventListener('orientationchange', onOrientation);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onRejection);
+      window.removeEventListener('focusin', onFocusIn);
+      window.removeEventListener('focusout', onFocusOut);
+      window.removeEventListener('orientationchange', onOrientation);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [debugParam, token]);
 
   const featureOptions = [
     'Real-time Deals',
@@ -127,8 +199,8 @@ const FAQ = () => {
       submitted_at: new Date().toISOString()
     };
 
-    console.log('📤 Submitting FAQ feedback to API:', payload);
-    console.log('🔑 Using token:', token ? 'Token present' : 'No token');
+    log('📤 Submitting', payload);
+    log('🔑 Token', token ? 'present' : 'absent');
 
     try {
       const response = await fetch(`${BASE_URL}/api/accounts/feedback/`, {
@@ -139,17 +211,16 @@ const FAQ = () => {
         },
         body: JSON.stringify(payload)
       });
-
-      console.log('📡 API Response Status:', response.status);
+      log('📡 API status', response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        console.error('❌ API Error:', errorData);
+        log('❌ API error', errorData || response.statusText);
         throw new Error(errorData?.detail || `API error: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('✅ FAQ feedback submitted successfully:', result);
+      log('✅ Submitted', result);
       
       setLoading(false);
       setSubmitted(true);
@@ -159,7 +230,7 @@ const FAQ = () => {
       }, 2000);
 
     } catch (err) {
-      console.error('❌ Error submitting FAQ feedback:', err);
+      log('❌ Submit error', err);
       setError(err.message || 'Failed to submit feedback. Please try again.');
       setLoading(false);
     }
@@ -190,6 +261,16 @@ const FAQ = () => {
           overscrollBehaviorY: 'contain',
         }}
       >
+        {/* Debug overlay toggle */}
+        {debugParam && (
+          <button
+            type="button"
+            onClick={() => setDebugOpen(v => !v)}
+            className="fixed bottom-4 right-4 z-[1000] bg-black/70 text-white text-xs px-3 py-2 rounded-full shadow-lg"
+          >
+            {debugOpen ? 'Hide Debug' : 'Show Debug'}
+          </button>
+        )}
         <div className="max-w-lg w-full">
           <div className="bg-white rounded-3xl p-8 shadow-2xl">
             <div className="text-center mb-6">
@@ -263,6 +344,43 @@ const FAQ = () => {
         overscrollBehaviorY: 'contain',
       }}
     >
+      {/* Debug overlay toggle */}
+      {debugParam && (
+        <button
+          type="button"
+          onClick={() => setDebugOpen(v => !v)}
+          className="fixed bottom-4 right-4 z-[1000] bg-black/70 text-white text-xs px-3 py-2 rounded-full shadow-lg"
+        >
+          {debugOpen ? 'Hide Debug' : 'Show Debug'}
+        </button>
+      )}
+
+      {/* Debug overlay panel */}
+      {debugParam && debugOpen && (
+        <div className="fixed left-0 right-0 bottom-0 z-[999] bg-white/95 border-t border-gray-200" style={{ maxHeight: '40%', backdropFilter: 'saturate(180%) blur(10px)' }}>
+          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
+            <div className="text-xs font-semibold text-gray-700">FAQ Debug Log</div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="text-xs bg-gray-800 text-white px-2 py-1 rounded"
+                onClick={async () => {
+                  const text = logs.join('\n');
+                  try { await navigator.clipboard.writeText(text); log('copied logs to clipboard'); } catch (e) { log('copy failed', e); }
+                }}
+              >Copy</button>
+              <button
+                type="button"
+                className="text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded"
+                onClick={() => setLogs([])}
+              >Clear</button>
+            </div>
+          </div>
+          <pre className="m-0 p-3 text-[11px] leading-4 text-gray-800 overflow-y-auto" style={{ maxHeight: 'calc(40vh - 36px)' }}>
+{logs.join('\n')}
+          </pre>
+        </div>
+      )}
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
