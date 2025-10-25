@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaStar, FaCheckCircle } from 'react-icons/fa';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
@@ -8,10 +8,6 @@ const FAQ = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
-  
-  // Refs for smooth scrolling on mobile
-  const formRef = useRef(null);
-  const activeInputRef = useRef(null);
 
   const [consentGiven, setConsentGiven] = useState(null); // null, true, false
   const [formData, setFormData] = useState({
@@ -27,55 +23,6 @@ const FAQ = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Prevent viewport scaling issues on mobile WebView
-  useEffect(() => {
-    // Set viewport meta tag for mobile stability
-    const viewport = document.querySelector('meta[name=viewport]');
-    if (viewport) {
-      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-    }
-
-    // Prevent body scroll when keyboard opens
-    const preventScroll = (e) => {
-      if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') {
-        e.preventDefault();
-      }
-    };
-
-    // Add touch event listeners for better mobile handling
-    document.body.style.position = 'relative';
-    document.body.style.overflow = 'auto';
-    
-    return () => {
-      // Cleanup
-      if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
-      }
-    };
-  }, []);
-
-  // Handle input focus for smooth keyboard handling
-  const handleInputFocus = (e) => {
-    activeInputRef.current = e.target;
-    
-    // Scroll input into view smoothly on mobile
-    setTimeout(() => {
-      if (activeInputRef.current) {
-        activeInputRef.current.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center',
-          inline: 'nearest'
-        });
-      }
-    }, 300); // Delay to allow keyboard to open
-  };
-
-  const handleInputBlur = () => {
-    activeInputRef.current = null;
-    // Scroll back to top smoothly
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   // Redirect if no token is provided
   useEffect(() => {
@@ -111,9 +58,6 @@ const FAQ = () => {
       ...prev,
       [name]: value
     }));
-    
-    // Prevent any unwanted scrolling during typing
-    e.stopPropagation();
   };
 
   const handleRatingClick = (rating) => {
@@ -205,13 +149,7 @@ const FAQ = () => {
   // Consent Screen
   if (consentGiven === null) {
     return (
-      <div 
-        className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4"
-        style={{
-          WebkitOverflowScrolling: 'touch',
-          overflow: 'auto'
-        }}
-      >
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
         <div className="max-w-md w-full">
           <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-200">
             {/* Icon */}
@@ -258,13 +196,7 @@ const FAQ = () => {
 
   if (submitted) {
     return (
-      <div 
-        className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4"
-        style={{
-          WebkitOverflowScrolling: 'touch',
-          overflow: 'auto'
-        }}
-      >
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="bg-green-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
             <FaCheckCircle className="text-5xl text-[#378157]" />
@@ -281,15 +213,7 @@ const FAQ = () => {
   }
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-b from-green-50 to-white py-6 px-4"
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
-        overflow: 'auto'
-      }}
-    >
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white py-6 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -302,7 +226,7 @@ const FAQ = () => {
         </div>
 
         {/* Feedback Form */}
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
@@ -347,11 +271,8 @@ const FAQ = () => {
               name="experience"
               value={formData.experience}
               onChange={handleInputChange}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             >
               <option value="">Select an option</option>
               <option value="excellent">Excellent</option>
@@ -436,12 +357,9 @@ const FAQ = () => {
               name="improvements"
               value={formData.improvements}
               onChange={handleInputChange}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
               placeholder="Share your suggestions for improvement..."
               rows="4"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm resize-none"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -454,12 +372,9 @@ const FAQ = () => {
               name="additionalComments"
               value={formData.additionalComments}
               onChange={handleInputChange}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
               placeholder="Any other feedback you'd like to share..."
               rows="3"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#378157] text-sm resize-none"
-              style={{ fontSize: '16px' }} // Prevents zoom on iOS
             />
           </div>
 
@@ -489,5 +404,5 @@ const FAQ = () => {
   );
 };
 
-export default Feedback;
+export default FAQ;
 
