@@ -27,6 +27,8 @@ const FAQ = () => {
 
   // Flutter WebView stability: lock layout during keyboard transitions
   const [imeTransitioning, setImeTransitioning] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const textareaRef = React.useRef(null);
 
   // Lightweight in-app debug overlay (toggle with ?debug=1)
   const [debugOpen, setDebugOpen] = useState(debugParam);
@@ -163,11 +165,24 @@ const FAQ = () => {
       log('focusin', document.activeElement?.tagName);
       // Detect Flutter WebView IME show via focus
       setImeTransitioning(true);
+      setIsTyping(true);
+      
+      // CRITICAL: Prevent Flutter from destroying WebView tab
+      // Keep a persistent touch on the DOM to signal "don't recycle me"
+      if (textareaRef.current) {
+        textareaRef.current.style.willChange = 'contents';
+      }
     };
     const onFocusOut = () => {
       log('focusout');
       // IME likely hiding
-      setTimeout(() => setImeTransitioning(false), 100);
+      setIsTyping(false);
+      setTimeout(() => {
+        setImeTransitioning(false);
+        if (textareaRef.current) {
+          textareaRef.current.style.willChange = 'auto';
+        }
+      }, 100);
     };
     const onOrientation = () => log('orientationchange');
     const onVisibility = () => log('visibilitychange', document.visibilityState);
@@ -201,15 +216,30 @@ const FAQ = () => {
 
   const handleInputChange = (e) => {
     // Skip updates during Flutter Surface transitions
-    if (imeTransitioning) {
+    if (imeTransitioning && !isTyping) {
       log('handleInputChange skipped: IME transitioning');
       return;
     }
-    const { name, value } = e.target;
+    const { value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      feedback: value
     }));
+  };
+
+  // Aggressive focus handler to prevent WebView destruction
+  const handleFocus = (e) => {
+    log('textarea focused - locking WebView');
+    e.target.setAttribute('data-active', 'true');
+    // Force compositor layer
+    e.target.style.transform = 'translateZ(0)';
+    e.target.style.willChange = 'contents';
+  };
+
+  const handleBlur = (e) => {
+    log('textarea blurred - releasing WebView');
+    e.target.removeAttribute('data-active');
+    e.target.style.willChange = 'auto';
   };
 
   const handleRatingClick = (rating) => {
